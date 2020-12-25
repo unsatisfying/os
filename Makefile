@@ -27,35 +27,35 @@ link:
 	    @echo 链接内核文件...
 	        $(LD) $(LD_FLAGS) $(S_OBJECTS) $(C_OBJECTS) -o hx_kernel
 
-.PHONY:clean
-	clean:
+.PHONY : clean	
+clean:
 	    $(RM) $(S_OBJECTS) $(C_OBJECTS) hx_kernel
 
-.PHONY:update_image
-	update_image:
+.PHONY : update_image	
+update_image:
 	sudo mount floppy.img /mnt/kernel
 	sudo cp hx_kernel /mnt/kernel/hx_kernel
 	sleep 1
 	sudo umount /mnt/kernel
 
-.PHONY:mount_image
-	mount_image:
+.PHONY : mount_image
+mount_image:
 	sudo mount floppy.img /mnt/kernel
 
-.PHONY:umount_image
-	umount_image:
+.PHONY : umount_image
+umount_image:
 	sudo umount /mnt/kernel
 
 .PHONY:qemu
-	qemu:
+qemu:
 	qemu-system-i386 -fda floppy.img -boot a
 
 .PHONY:bochs
-	bochs:
+bochs:
 	bochs -f tools/bochsrc.txt
 
 .PHONY:debug
-	debug:
+debug:
 	qemu-system-i386 -S -s -fda floppy.img -boot a &
 	sleep 1
 	cgdb -x tools/gdbinit
