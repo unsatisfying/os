@@ -8,7 +8,7 @@
             "name": "(gdb) 启动",
             "type": "cppdbg",
             "request": "launch",
-            "program": "输入程序名称，例如 ${workspaceFolder}/a.out",
+            "program": "${workspaceFolder}/hx_kernel",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

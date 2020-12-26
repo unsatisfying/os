@@ -16,10 +16,10 @@ static void move_cur_location()
     //通过0x3D4端口作为显卡内部寄存器的索引，通过0x3D5端口来设置相应寄存器的值
     //这里用到了14和15两个内部寄存器编号，分别表示光标的高8位和低8位。
 
-    outb(0x3D4,(uint8_t)14);
-    outb(0x3D5,(uint8_t)cur_location>>8);
-    outb(0x3D4,(uint8_t)15);
-    outb(0x3D5,(uint8_t)cur_location);
+    outb(0x3D4,14);
+    outb(0x3D5,cur_location>>8);
+    outb(0x3D4,15);
+    outb(0x3D5,cur_location);
 }
 
 
@@ -46,7 +46,7 @@ static void screen_roll()
     if(cur_y>=25)
     {
         //构造空格字符
-        uint8_t color_byte=(0<<4)|0xf;//黑底白字00001111b
+        uint8_t color_byte=(0<<4)|0x0f;//黑底白字00001111b
         uint16_t blank=(color_byte<<8)|0x20;//intel是小端方式，低字节在低地址，所以低字节放的是字节颜色属性，高字节放的是字符的ascii码，空格的ascii码是32,0x20.
         //int i;
         //前24行
@@ -60,7 +60,7 @@ static void screen_roll()
             VGA_memory[i]=blank;
         }
         
-        cur_y--;
+        cur_y=24;
 
     }
 
