@@ -3,7 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/home/zrf/os/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
