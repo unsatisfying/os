@@ -38,6 +38,7 @@ void init_gdt()
     gdt_ptr.base=(uint32_t) &gdt_entries;//取表的地址
 
     //intel平坦内存模型
+    //平坦内存模型要求，base基地址为0x0,而限制Limit是0xfffffffff,实际只用到了20位，四位给了gran， 具体含义看md文档内的图片
     gdt_set_gate(0,0,0,0,0);//intel文档要求第一个描述符必须全0
     gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // 指令段   10011010
     gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // 数据段   10010010
