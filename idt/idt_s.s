@@ -6,8 +6,6 @@ idt_flush:
 .end
 
 
-
-
 ;用宏定义两个构造中断处理函数的宏
 ;没有错误代码的中断，要手动push一个错误代码0,填充结构体用
 
@@ -87,7 +85,7 @@ isr_common_stub:
         push esp  ;此时ESP指针往上就是pt_regs结构，
 
         call isr_handler    ;此时已经保存了现场，调用中断处理函数
-        add esp,4   ;//有点奇怪这里为什么会多一个参数
+        add esp,4   ;弹出函数调用的时候32位会压入栈的参数，这里就是弹出之前弹入的ESP
 
         pop ebx ;弹出原来的ds值
         mov ds,bx
@@ -102,4 +100,63 @@ isr_common_stub:
         iret
 .end:
 
+
+%macro IRQ 2;表示两个参数
+[GLOBAL irq%1] ;%1表示第一个参数 如irq0,irq1等等
+irq%1:
+        cli;
+        push 0;
+        push %2;push第二个参数，即实际的中断向量号
+        jmp irq_common_stub;
+%endmacro
+
+IRQ   0,    32  ; 电脑系统计时器
+IRQ   1,    33  ; 键盘
+IRQ   2,    34  ; 与 IRQ9 相接，MPU-401 MD 使用
+IRQ   3,    35  ; 串口设备
+IRQ   4,    36  ; 串口设备
+IRQ   5,    37  ; 建议声卡使用
+IRQ   6,    38  ; 软驱传输控制使用
+IRQ   7,    39  ; 打印机传输控制使用
+IRQ   8,    40  ; 即时时钟
+IRQ   9,    41  ; 与 IRQ2 相接，可设定给其他硬件
+IRQ  10,    42  ; 建议网卡使用
+IRQ  11,    43  ; 建议 AGP 显卡使用
+IRQ  12,    44  ; 接 PS/2 鼠标，也可设定给其他硬件
+IRQ  13,    45  ; 协处理器使用
+IRQ  14,    46  ; IDE0 传输控制使用
+IRQ  15,    47  ; IDE1 传输控制使用
+
+
+[GLOBAL irq_common_stub]
+[EXTERN irq_handler]
+irq_common_stub:
+        pusha   ;push edi,esi,ebp,esp,ebx,edx,ecx,eax
+        mov ax,ds   ;
+        push eax    ;保存数据段描述符ds
+
+        mov ax,0x10 ;加载内核数据段的描述符表，16字节偏移，因为全局就一个段，所以基地址为0,段描述符大小一个是8字节
+        mov ds,ax
+        mov es,ax
+        mov fs,ax
+        mov gs,ax
+        mov ss,ax
+
+        push esp  ;此时ESP指针往上就是pt_regs结构，
+
+        call irq_handler    ;此时已经保存了现场，调用中断处理函数
+        add esp,4   ;弹出函数调用的时候32位会压入栈的参数，这里就是弹出之前弹入的ESP
+
+        pop ebx ;弹出原来的ds值
+        mov ds,bx
+        mov es,bx
+        mov fs,bx
+        mov gs,bx
+        mov ss,bx
+
+        popa    ;弹出edi -eax
+
+        add esp ,8  ;清楚栈内错误代码和ISR中断号。
+        iret
+.end
 

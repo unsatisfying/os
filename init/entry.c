@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "gdt.h"
 #include "idt.h"
+#include "timer.h"
 int kern_entry()
 {
 	init_debug();
@@ -12,8 +13,13 @@ int kern_entry()
 	screen_clear();
 
 	printk_color(rc_black, rc_green, "HAPPY NEW YEAR!\n");
-
+	
+	init_timer(1000000);
 	asm volatile ("int $0x3");
 	asm volatile ("int $0x5");
+
+	asm volatile("sti");
+	
+	//asm volatile("cli");
 	return 0;
 }
