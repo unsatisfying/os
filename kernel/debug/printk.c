@@ -12,7 +12,9 @@ void printk(const char *format,...)
     int i=vsprintf(buff,format,args);
     va_end(args);
     if(i>1024)
+    {
         screen_write("printk overflow!\n");
+    }
     buff[i]='\0';
     screen_write(buff);
 }
@@ -28,8 +30,9 @@ void printk_color(real_color_t back, real_color_t fore, const char *format, ...)
 	i = vsprintf(buff, format, args);
 	va_end(args);
     if(i>1024)
+    {
         screen_write("printk overflow!\n");
-
+    }
 	buff[i] = '\0';
 
 	screen_write_color(buff, back, fore);
@@ -82,7 +85,7 @@ static char *number(char *str,int num,int base/*进制数*/,int size/*字符长�
     char c=(type&ZEROPAD)?'0':' ';//如果flag有左对齐，又用0来补，上面又把ZEROPAD删去了，所以用空格。
     //sign表示符号，可能为 ‘+’ ‘-’ ‘ ’（空格）
     char sign;
-    if(type&ZEROPAD &&num<0)
+    if(type&SIGN &&num<0)
     {
         sign='-';
         num=-num;

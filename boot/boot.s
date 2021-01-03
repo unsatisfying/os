@@ -14,7 +14,7 @@ MBOOT_PAGE_ALIGN    equ     1 << 0
 ; (告诉GRUB把内存空间的信息包含在Multiboot信息结构中)
 MBOOT_MEM_INFO      equ     1 << 1    
 
-; 定义我们使用的 Multiboot 的标记
+; 定义我们使用的 Multiboot 的flags
 MBOOT_HEADER_FLAGS  equ     MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO
 
 ; 域checksum是一个32位的无符号值，当与其他的magic域(也就是magic和flags)
