@@ -5,7 +5,8 @@
 // ISR 中断服务程序
 // IRQ 中断请求 区分开来
 //中断描述符
-typedef struct idt_entry_t {
+typedef struct idt_entry_t
+{
   uint16_t base_lo; //中断处理函数地址 15-0位
   uint16_t sel;     //目标代码段描述符选择子
   uint8_t always0;  //置0段
@@ -14,12 +15,14 @@ typedef struct idt_entry_t {
 } __attribute__((packed)) idt_entry_t;
 
 // IDTR寄存器
-typedef struct idt_ptr_t {
+typedef struct idt_ptr_t
+{
   uint16_t limit; //限长
   uint32_t base;  //基地址
 } __attribute__((packed)) idt_ptr_t;
 
-typedef struct pt_regs_t {
+typedef struct pt_regs_t
+{
   uint32_t ds;  //用户的数据段描述符 号
   uint32_t edi; //保存寄存器
   uint32_t esi;

@@ -4,7 +4,8 @@
 #include "common.h"
 // KRGB	IRGB
 // （8位，K=0不闪烁，K=1闪烁，前景色RGB从0b000-0b111，后景色IRGB从0b0000-0b1111,其中前面8个颜色和前景色相同）
-typedef enum real_color {
+typedef enum real_color
+{
   rc_black = 0,          //黑色
   rc_blue = 1,           //蓝色
   rc_green = 2,          //绿色
