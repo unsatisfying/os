@@ -32,6 +32,7 @@ typedef enum page_c_t
   _256,
   _512,
   _1024,
+  _sigle,
   _erro
 } page_c_t;
 
@@ -40,23 +41,26 @@ typedef struct pm_page_t
 {
   uint32_t page_number;
   struct pm_page_t *next;
+  struct pm_page_t *pre;
   uint8_t state;
 } pm_page_t;
 
 //伙伴的链表集合
 typedef struct pm_linklist_header_t
 {
-  pm_page_t *_1;
-  pm_page_t *_2;
-  pm_page_t *_4;
-  pm_page_t *_8;
-  pm_page_t *_16;
-  pm_page_t *_32;
-  pm_page_t *_64;
-  pm_page_t *_128;
-  pm_page_t *_256;
-  pm_page_t *_512;
-  pm_page_t *_1024;
+  pm_page_t *link[12];
+  uint32_t node_length[12];
+  // pm_page_t *_1;
+  // pm_page_t *_2;
+  // pm_page_t *_4;
+  // pm_page_t *_8;
+  // pm_page_t *_16;
+  // pm_page_t *_32;
+  // pm_page_t *_64;
+  // pm_page_t *_128;
+  // pm_page_t *_256;
+  // pm_page_t *_512;
+  // pm_page_t *_1024;
 } pm_linklist_header_t;
 
 //分配页时候返回结构体

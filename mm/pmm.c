@@ -10,8 +10,8 @@ uint32_t phy_page_count;
 //单独页的第一个页号
 uint32_t singel_page_first_no;
 
-//页开始地址,因为页结构从2MB地址开始，512M内存一共需要1.5M空间来存，所以剩下的从4MB开始，中间空0.5M留做他用
-// 512×1024×1024/（4096）  × 12
+//页开始地址,因为页结构从2MB地址开始，512M内存一共需要2M空间来存，所以剩下的从4MB开始
+// 512×1024×1024/（4096）  × 16
 //          页个数        ×  每个页结构体大小 12字节
 uint32_t pmm_page_start = 0x00400000;
 
@@ -22,10 +22,7 @@ pm_page_t *page_array = (pm_page_t *)0x00200000;
 
 pm_linklist_header_t *MULTI_LINK;
 
-pm_linklist_header_t multi_link_struct = {NULL, NULL, NULL, NULL, NULL, NULL,
-										  NULL, NULL, NULL, NULL, NULL};
-
-pm_page_t *SINGLE_LINK = NULL;
+pm_linklist_header_t multi_link_struct;
 
 //从multiboot中读出可用内存的最大值
 uint32_t PM_MULTIBOOT_MAX_ADDR = 0;
@@ -44,147 +41,55 @@ static uint32_t addr_to_pmm_page_no(uint32_t addr)
 //将 page_c_t枚举类型转化为对应的块页面个数 如 (page_c_t)_256——> (uint32_t)256
 static uint32_t c_to_uint32(page_c_t ph)
 {
-	uint32_t re = 1;
-	re = re << ph;
-	return re;
-}
-//获得伙伴数组的页号
-static uint32_t get_partner_page_no(uint32_t page_no, page_c_t type)
-{
-	uint32_t v1 = c_to_uint32(type);
-	uint32_t v2 = v1 << 1;
-	if ((page_no - v1) % v2 == 0)
-		return page_no - v1;
-	else
-		return page_no + v1;
+	return 1 << ph;
 }
 
 static void add_block_to_link(uint32_t page_no, page_c_t c)
 {
-	page_array[page_no].next = NULL;
+	//page_array[page_no].next = NULL;
 	pm_page_t *header;
 	switch (c)
 	{
 	case _1:
-		header = MULTI_LINK->_1;
-		if (!header)
-			MULTI_LINK->_1 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _2:
-		header = MULTI_LINK->_2;
-		if (!header)
-			MULTI_LINK->_2 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _4:
-		header = MULTI_LINK->_4;
-		if (!header)
-			MULTI_LINK->_4 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _8:
-		header = MULTI_LINK->_8;
-		if (!header)
-			MULTI_LINK->_8 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _16:
-		header = MULTI_LINK->_16;
-		if (!header)
-			MULTI_LINK->_16 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _32:
-		header = MULTI_LINK->_32;
-		if (!header)
-			MULTI_LINK->_32 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _64:
-		header = MULTI_LINK->_64;
-		if (!header)
-			MULTI_LINK->_64 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _128:
-		header = MULTI_LINK->_128;
-		if (!header)
-			MULTI_LINK->_128 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _256:
-		header = MULTI_LINK->_256;
-		if (!header)
-			MULTI_LINK->_256 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _512:
-		header = MULTI_LINK->_512;
-		if (!header)
-			MULTI_LINK->_512 = &(page_array[page_no]);
-		else
-		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
-		}
-		break;
 	case _1024:
-		header = MULTI_LINK->_1024;
+	case _sigle:
+		header = MULTI_LINK->link[c];
 		if (!header)
-			MULTI_LINK->_1024 = &(page_array[page_no]);
+		{
+			MULTI_LINK->link[c] = &(page_array[page_no]);
+			page_array[page_no].next = NULL;
+			page_array[page_no].pre = NULL;
+			page_array[page_no].state = 0;
+			page_array[page_no].page_number = page_no;
+		}
 		else
 		{
-			while (header->next)
-				header = header->next;
-			header->next = &(page_array[page_no]);
+			pm_page_t *header_pre = header->pre;
+			if (header_pre)
+			{
+				header_pre->next = &(page_array[page_no]);
+				header->pre = &(page_array[page_no]);
+				page_array[page_no].next = header;
+				page_array[page_no].pre = header_pre;
+			}
+			else
+			{
+				header->next = &(page_array[page_no]);
+				header_pre = &(page_array[page_no]);
+				page_array[page_no].next = header;
+				page_array[page_no].pre = header;
+			}
 		}
+		MULTI_LINK->node_length[c]++;
 		break;
 	case _erro:
 		break;
@@ -198,200 +103,48 @@ static uint32_t pop_block(page_c_t c)
 	switch (c)
 	{
 	case _1:
-		header = MULTI_LINK->_1;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_1 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _2:
-		header = MULTI_LINK->_2;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_2 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _4:
-		header = MULTI_LINK->_4;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_4 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _8:
-		header = MULTI_LINK->_8;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_8 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _16:
-		header = MULTI_LINK->_16;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_16 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _32:
-		header = MULTI_LINK->_32;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_32 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _64:
-		header = MULTI_LINK->_64;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_64 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _128:
-		header = MULTI_LINK->_128;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_128 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _256:
-		header = MULTI_LINK->_256;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_256 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _512:
-		header = MULTI_LINK->_512;
-		if (!header)
-			return ERRO_POP_BLOCK;
-		else if (!header->next)
-		{
-			MULTI_LINK->_512 = NULL;
-			return header->page_number;
-		}
-		else
-		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
-			return return_page_no;
-		}
-		break;
 	case _1024:
-		header = MULTI_LINK->_1024;
+	case _sigle:
+		header = MULTI_LINK->link[c];
 		if (!header)
 			return ERRO_POP_BLOCK;
 		else if (!header->next)
 		{
-			MULTI_LINK->_1024 = NULL;
+			MULTI_LINK->link[c] = NULL;
+			MULTI_LINK->node_length[c]--;
 			return header->page_number;
 		}
 		else
 		{
-			while (header->next->next)
-				header = header->next;
-			return_page_no = header->next->page_number;
-			header->next = NULL;
+			if (header->next->next == header)
+			{
+				pm_page_t *header_pre = header->pre;
+				header_pre->next = NULL;
+				header_pre->pre = NULL;
+				header->next = NULL;
+				header->pre = NULL;
+				return_page_no = header_pre->page_number;
+			}
+			else
+			{
+				pm_page_t *header_pre = header->pre;
+				pm_page_t *header_pre_pre = header_pre->pre;
+				header_pre_pre->next = header;
+				header->pre = header_pre_pre;
+				header_pre->next = NULL;
+				header_pre->pre = NULL;
+				return_page_no = header_pre->page_number;
+			}
+			MULTI_LINK->node_length[c]--;
 			return return_page_no;
 		}
 		break;
@@ -400,10 +153,6 @@ static uint32_t pop_block(page_c_t c)
 		break;
 	}
 }
-void pmm_init();
-pm_alloc_re_t pmm_alloc_pages(uint32_t);
-pm_alloc_re_t pmm_alloc_one_page();
-int pmm_free_page(pm_alloc_re_t);
 void show_memory_map()
 {
 	uint32_t mmap_length = glb_mboot_ptr->mmap_length;
@@ -428,4 +177,168 @@ void show_memory_map()
 static void pmm_page_init()
 {
 	MULTI_LINK = &multi_link_struct;
+	for (int i = 0; i < 12; i++)
+	{
+		MULTI_LINK->link[i] = NULL;
+		MULTI_LINK->node_length[i] = 0;
+	}
+	for (int i = 0; i < PMM_MAX_PAGE_SIZE; i++)
+	{
+		page_array[i].next = NULL;
+		page_array[i].pre = NULL;
+		page_array[i].page_number = i;
+		page_array[i].state = 0; //未使用
+	}
+
+	add_block_to_link(0, _1);
+	add_block_to_link(1, _1);
+	add_block_to_link(2, _2);
+	add_block_to_link(4, _4);
+	add_block_to_link(8, _8);
+	add_block_to_link(16, _16);
+	add_block_to_link(32, _32);
+	add_block_to_link(64, _64);
+	add_block_to_link(128, _128);
+	add_block_to_link(256, _256);
+	add_block_to_link(512, _512);
+	add_block_to_link(1024, _1024);
+
+	int page_number_now = 2048;
+	for (; page_number_now < PMM_MAX_PAGE_SIZE - 1024; page_number_now += 1024)
+	{
+		add_block_to_link(page_number_now, _1024);
+	}
+
+	singel_page_first_no = page_number_now;
+
+	printk("first single page number is %d\n", page_number_now);
+	printk("we have %d pages for singel page alloc!\n", PMM_MAX_PAGE_SIZE - page_number_now);
+	MULTI_LINK->link[11] = &(page_array[page_number_now++]);
+	MULTI_LINK->node_length[11]++;
+	pm_page_t *tmpheader = MULTI_LINK->link[11];
+	for (; page_number_now < PMM_MAX_PAGE_SIZE; page_number_now++)
+	{
+		tmpheader->next = &(page_array[page_number_now]);
+		page_array[page_number_now].pre = tmpheader;
+		tmpheader = tmpheader->next;
+		MULTI_LINK->node_length[11]++;
+	}
+	tmpheader->next = MULTI_LINK->link[11];
+	MULTI_LINK->link[11]->pre = tmpheader;
+}
+pm_alloc_re_t pmm_alloc_pages(uint32_t page_count)
+{
+	pm_alloc_re_t return_struct = {0, _erro, 0};
+	if (page_count > 1024 || page_count == 0)
+		return return_struct;
+	uint32_t page_size = 0;
+	while (page_count > (0x1 << page_size))
+		page_size++;
+	page_c_t origin_page_size = page_size;
+	uint32_t pop_page_number = ERRO_POP_BLOCK;
+	for (; page_size < _erro; page_size++)
+	{
+		pop_page_number = pop_block(page_size);
+		if (pop_page_number != ERRO_POP_BLOCK)
+			break;
+	}
+	if (pop_page_number == ERRO_POP_BLOCK)
+	{
+		return return_struct;
+	}
+	else
+	{
+		for (; page_size != origin_page_size; page_size--)
+		{
+			uint32_t add_to_link_page_number = pop_page_number + (c_to_uint32(page_size) >> 1);
+			add_block_to_link(add_to_link_page_number, page_size - 1);
+		}
+		return_struct.addr = pmm_page_no_to_addr(pop_page_number);
+		return_struct.state = 1;
+		return_struct.size = origin_page_size;
+		return return_struct;
+	}
+}
+pm_alloc_re_t pmm_alloc_one_page()
+{
+	pm_alloc_re_t return_struct = {0, _erro, 0};
+	if (MULTI_LINK->link[11])
+	{
+		pm_page_t *header = MULTI_LINK->link[11];
+		if (header->next)
+		{
+			pm_page_t *header_pre = header->pre;
+			if (header_pre->pre == header)
+			{
+				return_struct.state = 1;
+				return_struct.size = 11;
+				return_struct.addr = pmm_page_no_to_addr(header_pre->page_number);
+				header_pre->next = NULL;
+				header_pre->pre = NULL;
+				header->next = NULL;
+				header->pre = NULL;
+			}
+			else
+			{
+				return_struct.state = 1;
+				return_struct.size = 11;
+				return_struct.addr = pmm_page_no_to_addr(header_pre->page_number);
+				header_pre->pre->next = header;
+				header->pre = header_pre->pre;
+				header_pre->next = NULL;
+				header_pre->pre = NULL;
+			}
+
+			return return_struct;
+		}
+		else
+		{
+			MULTI_LINK->link[11] = NULL;
+			return_struct.state = 1;
+			return_struct.size = 11;
+			return_struct.addr = pmm_page_no_to_addr(header->page_number);
+			return return_struct;
+		}
+	}
+	else
+	{
+		return pmm_alloc_pages(1);
+	}
+}
+//获得伙伴数组的页号
+static uint32_t get_partner_page_no(uint32_t page_no, page_c_t type)
+{
+	uint32_t v1 = c_to_uint32(type);
+	uint32_t v2 = v1 << 1;
+	if ((page_no - v1) % v2 == 0)
+		return page_no - v1;
+	else
+		return page_no + v1;
+}
+static int pop_block_from_MULTILINK(uint32_t page_num, page_c_t size)
+{
+	pm_page_t *header = MULTI_LINK->link[size];
+	if (header->page_number == page_num)
+	{
+	}
+}
+int pmm_free_page(pm_alloc_re_t block_disk)
+{
+	uint32_t page_num = addr_to_pmm_page_no(block_disk.addr);
+	if (page_num < PMM_MAX_PAGE_SIZE)
+	{
+		if (block_disk.size == _sigle)
+		{
+			add_block_to_link(page_num, _sigle);
+		}
+		else
+		{
+			uint32_t partner_page_no = get_partner_page_no(page_num, block_disk.size);
+			add_block_to_link(page_num, block_disk.size);
+		}
+	}
+	else
+	{
+		return 0;
+	}
 }
