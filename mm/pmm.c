@@ -152,6 +152,7 @@ static uint32_t pop_block(page_c_t c)
 		return ERRO_POP_BLOCK;
 		break;
 	}
+	return ERRO_POP_BLOCK;
 }
 void show_memory_map()
 {
@@ -160,16 +161,15 @@ void show_memory_map()
 	//uint32_t PM_MULTIBOOT_MAX_ADDR = 0;
 	printk("Multiboot shows memory map:\n");
 	mmap_entry_t *mmap = (mmap_entry_t *)mmap_addr;
-	int i = 0;
 	for (mmap = (mmap_entry_t *)mmap_addr; (uint32_t)mmap < mmap_addr + mmap_length; mmap++)
 	{
 		printk("base_addr = 0x%X%08X, length = 0x%X%08X, type = 0x%X\n",
 			   (uint32_t)mmap->base_addr_high, (uint32_t)mmap->base_addr_low,
 			   (uint32_t)mmap->length_high, (uint32_t)mmap->length_low,
 			   (uint32_t)mmap->type);
-		if (mmap->type == 1 && PM_MULTIBOOT_MAX_ADDR < mmap->base_addr_low + mmap->length_low)
+		if (mmap->type == 1 && PM_MULTIBOOT_MAX_ADDR < (mmap->base_addr_low + mmap->length_low))
 		{
-			PM_MULTIBOOT_MAX_ADDR < mmap->base_addr_low + mmap->length_low;
+			PM_MULTIBOOT_MAX_ADDR = mmap->base_addr_low + mmap->length_low;
 		}
 	}
 }
@@ -317,9 +317,79 @@ static uint32_t get_partner_page_no(uint32_t page_no, page_c_t type)
 }
 static int pop_block_from_MULTILINK(uint32_t page_num, page_c_t size)
 {
+	if (size >= 11)
+		return 0;
 	pm_page_t *header = MULTI_LINK->link[size];
+	if (!header)
+		return 0;
 	if (header->page_number == page_num)
 	{
+		pm_page_t *header_pre = header->pre;
+		pm_page_t *header_next = header->next;
+		if (MULTI_LINK->node_length[size] == 1)
+		{
+			MULTI_LINK->link[size] = NULL;
+		}
+		else if (MULTI_LINK->node_length[size] == 2)
+		{
+			MULTI_LINK->link[size] = header_next;
+			header_next->pre = NULL;
+			header_next->next = NULL;
+		}
+		else
+		{
+			MULTI_LINK->link[size] = header_next;
+			header_next->pre = header_pre;
+			header_pre->next = header_next;
+		}
+		header->next = NULL;
+		header->pre = NULL;
+		header->state = 1;
+		return 1;
+	}
+	else
+	{
+		header = header->next;
+		if (MULTI_LINK->node_length[size] == 1)
+		{
+			return 0;
+		}
+		else if (MULTI_LINK->node_length[size] == 2)
+		{
+			if (header->page_number == page_num)
+			{
+				pm_page_t *header_pre = header->pre;
+				header_pre->next = NULL;
+				header_pre->pre = NULL;
+				header->next = NULL;
+				header->pre = NULL;
+				header->state = 1;
+				return 1;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			while (header != MULTI_LINK->link[size] && header->page_number != page_num)
+				header = header->next;
+			if (header == MULTI_LINK->link[size])
+				return 0;
+			else if (header->page_number == page_num)
+			{
+				pm_page_t *header_pre = header->pre;
+				pm_page_t *header_next = header->next;
+				header_next->pre = header_pre;
+				header_pre->next = header_next;
+				header->next = NULL;
+				header->pre = NULL;
+				header->state = 1;
+				return 1;
+			}
+			return 0;
+		}
 	}
 }
 int pmm_free_page(pm_alloc_re_t block_disk)
@@ -330,15 +400,38 @@ int pmm_free_page(pm_alloc_re_t block_disk)
 		if (block_disk.size == _sigle)
 		{
 			add_block_to_link(page_num, _sigle);
+			printk(" free page: page_num:%d, size:_single\n", page_num);
+			return 1;
 		}
 		else
 		{
 			uint32_t partner_page_no = get_partner_page_no(page_num, block_disk.size);
-			add_block_to_link(page_num, block_disk.size);
+			page_c_t msize = block_disk.size;
+			uint32_t page_head_num = partner_page_no < page_num ? partner_page_no : page_num;
+			if (!pop_block_from_MULTILINK(partner_page_no, msize))
+			{
+				add_block_to_link(page_num, msize);
+				printk(" free page: page_num:%d, size:%d\n", page_num, 1 << msize);
+				return 1;
+			}
+			uint32_t flag = 1;
+			while (flag && msize < 10)
+			{
+				msize++;
+				partner_page_no = get_partner_page_no(page_head_num, msize);
+				page_head_num = partner_page_no < page_head_num ? partner_page_no : page_head_num;
+				flag = pop_block_from_MULTILINK(partner_page_no, msize);
+			}
+			add_block_to_link(page_head_num, msize);
+			printk(" free page: page_num:%d, size:%d\n", page_num, 1 << msize);
+			return 1;
 		}
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
+}
+
+void pmm_init()
+{
+	show_memory_map();
+	pmm_page_init();
 }
