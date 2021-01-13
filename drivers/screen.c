@@ -1,7 +1,7 @@
 #include "screen.h"
 #include "string.h"
 // VGA缓冲在内存中的起点位置，static保证这三个变量只在此文件中使用
-static uint16_t *VGA_memory = (uint16_t *)0xB8000;
+static uint16_t *VGA_memory = (uint16_t *)(0xB8000+PAGE_OFFSET);
 
 //定义当前光标位置坐标,屏幕是80（字节）×25大小,一个屏幕显示2000字符
 static uint8_t cur_x = 0;

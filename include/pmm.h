@@ -4,6 +4,7 @@
 #include "multiboot.h"
 #include "types.h"
 
+#define STACK_SIZE 8192
 //最大物理内存512MB
 #define PMM_MAX_SIZE 0x20000000
 

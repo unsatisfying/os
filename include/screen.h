@@ -2,6 +2,7 @@
 #define _INCLUDE_SCREEN_H_
 
 #include "common.h"
+#include "vmm.h"
 // KRGB	IRGB
 // （8位，K=0不闪烁，K=1闪烁，前景色RGB从0b000-0b111，后景色IRGB从0b0000-0b1111,其中前面8个颜色和前景色相同）
 typedef enum real_color
